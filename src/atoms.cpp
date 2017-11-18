@@ -7,27 +7,29 @@
 using namespace std;
 
 
-Atoms::Atoms( PyObject *pysymbols, PyObject *pypositions, PyObject *pycell )
+Atoms::Atoms( PyObject *pysymbols, PyObject *pypositions, PyObject *pycell ):cell(3,3),inv_cell(3,3)
 {
-  for ( unsigned int i=0;i<PyList_Size(pysymbols);i++ )
+  unsigned int N = PyList_Size(pysymbols);
+  positions.set_size(N,3);
+
+  for ( unsigned int i=0;i<N;i++ )
   {
     symbols.push_back( PyString_AsString(PyList_GetItem(pysymbols,i)) );
 
-    array<double,3> newvec;
     // Extract the positions
     for ( unsigned int j=0;j<3;j++ )
     {
-      newvec[j] = *static_cast<double*>(PyArray_GETPTR2(pypositions,i,j));
+      positions(i,j) = *static_cast<double*>(PyArray_GETPTR2(pypositions,i,j));
     }
-    positions.push_back( newvec );
   }
+  cout << positions << endl;
 
   // Extract the unit cell
   for ( unsigned int i=0;i<3;i++ )
   {
     for ( unsigned int j=0;j<3;j++ )
     {
-      cell[i][j] = *static_cast<double*>(PyArray_GETPTR2(pycell,i,j) );
+      cell(i,j) = *static_cast<double*>(PyArray_GETPTR2(pycell,i,j) );
     }
   }
 
@@ -36,38 +38,21 @@ Atoms::Atoms( PyObject *pysymbols, PyObject *pypositions, PyObject *pycell )
 
 void Atoms::invert_cell()
 {
-  double V = cell_volume();
-
-  // Hard code the inverse of a 3x3 matrix using minors the inverse of a 3x3 matrix
-  inv_cell[0][0] = tools::det2x2( cell[1][1], cell[1][2], cell[2][1], cell[2][2] )/V;
-  inv_cell[0][1] = tools::det2x2( cell[0][2], cell[0][1], cell[2][2], cell[2][1] )/V;
-  inv_cell[0][2] = tools::det2x2( cell[0][1], cell[0][2], cell[1][1], cell[1][2] )/V;
-
-  inv_cell[1][0] = tools::det2x2( cell[1][2], cell[1][0], cell[2][2], cell[2][0] )/V;
-  inv_cell[1][1] = tools::det2x2( cell[0][0], cell[0][2], cell[2][0], cell[2][2] )/V;
-  inv_cell[1][2] = tools::det2x2( cell[0][2], cell[0][0], cell[1][2], cell[1][0] )/V;
-
-  inv_cell[2][0] = tools::det2x2( cell[1][0], cell[1][1], cell[2][0], cell[2][1] )/V;
-  inv_cell[2][1] = tools::det2x2( cell[0][1], cell[0][0], cell[2][1], cell[2][0] )/V;
-  inv_cell[2][2] = tools::det2x2( cell[0][0], cell[0][1], cell[1][0], cell[1][1] )/V;
+  tools::inv3x3( cell, inv_cell );
 }
 
 double Atoms::cell_volume() const
 {
-  double V = 0.0;
-  V += cell[0][0]*( cell[1][1]*cell[2][2] - cell[1][2]*cell[2][1] );
-  V -= cell[0][1]*( cell[1][0]*cell[2][2] - cell[2][0]*cell[1][2] );
-  V += cell[0][2]*( cell[1][0]*cell[2][1] - cell[2][0]*cell[1][1] );
-  return V;
+  return tools::det3x3(cell);
 }
 
-void Atoms::rotate( const mat3x3 &R, bool wrap_to_unit_cell )
+void Atoms::rotate( const Matrix &R, bool wrap_to_unit_cell )
 {
-  array<double,3> out;
-  for ( unsigned int i=0;i<positions.size();i++ )
+  Vector out(3);
+  for ( unsigned int i=0;i<positions.get_nrows();i++ )
   {
-    tools::dot<3>( R, positions[i], out );
-    positions[i] = out;
+    tools::dot( R, positions.row(i), out );
+    positions.set_row(out, i);
   }
 
   if ( wrap_to_unit_cell )
@@ -76,7 +61,7 @@ void Atoms::rotate( const mat3x3 &R, bool wrap_to_unit_cell )
   }
 }
 
-void Atoms::rotate( const mat3x3 &R )
+void Atoms::rotate( const Matrix &R )
 {
   rotate(R,false);
 }
@@ -84,51 +69,30 @@ void Atoms::rotate( const mat3x3 &R )
 void Atoms::test()
 {
   cout << "Unit cell:\n";
-  for ( unsigned int i=0;i<3;i++ )
-  {
-    for ( unsigned int j=0;j<3;j++ )
-    {
-      cout << cell[i][j] << " ";
-    }
-    cout << endl;
-  }
+  cout << cell << endl;
 
   cout << "Cell volume: " << cell_volume() << endl;
 
   cout << "Inverse unit cell:\n";
-  for ( unsigned int i=0;i<3;i++ )
-  {
-    for ( unsigned int j=0;j<3;j++ )
-    {
-      cout << inv_cell[i][j] << " ";
-    }
-    cout << endl;
-  }
+  cout << inv_cell << endl;
 
   wrap();
   cout << "Positions:\n";
-  for ( unsigned int i=0;i<positions.size();i++ )
-  {
-    for ( unsigned int j=0;j<3;j++ )
-    {
-      cout << positions[i][j] << " ";
-    }
-    cout << endl;
-  }
+  cout << positions << endl;
 }
 
 void Atoms::wrap()
 {
   double eps = 1E-7;
-  array<double,3> fractional;
-  for ( unsigned int i=0;i<positions.size();i++ )
+  Vector fractional(3);
+  for ( unsigned int i=0;i<positions.get_nrows();i++ )
   {
     for ( unsigned int j=0;j<3;j++ )
     {
       fractional[j] = 0.0;
       for ( unsigned int k=0;k<3;k++ )
       {
-        fractional[j] += inv_cell[j][k]*positions[i][k];
+        fractional[j] += inv_cell(j,k)*positions(i,k);
       }
       fractional[j] += eps;
       fractional[j] -= static_cast<int>(fractional[j]);
@@ -137,34 +101,34 @@ void Atoms::wrap()
 
     for ( unsigned int j=0;j<3;j++ )
     {
-      positions[i][j] = 0.0;
+      positions(i,j) = 0.0;
       for ( unsigned int k=0;k<3;k++ )
       {
-        positions[i][j] += fractional[k]*cell[k][j];
+        positions(i,j) += fractional[k]*cell(k,j);
       }
     }
   }
 }
 
-void Atoms::translate( const std::array<double,3> &vec, trans_dir_t dir )
+void Atoms::translate( const Vector &vec, trans_dir_t dir )
 {
   switch ( dir )
   {
     case trans_dir_t::POSITIVE:
-    for ( unsigned int i=0; i<positions.size();i++ )
+    for ( unsigned int i=0; i<positions.get_nrows();i++ )
     {
       for ( unsigned int j=0;j<3;j++ )
       {
-        positions[i][j] += vec[j];
+        positions(i,j) += vec(j);
       }
     }
     break;
     case trans_dir_t::NEGATIVE:
-    for ( unsigned int i=0; i<positions.size();i++ )
+    for ( unsigned int i=0; i<positions.get_nrows();i++ )
     {
       for ( unsigned int j=0;j<3;j++ )
       {
-        positions[i][j] -= vec[j];
+        positions(i,j) -= vec(j);
       }
     }
   }
@@ -172,16 +136,16 @@ void Atoms::translate( const std::array<double,3> &vec, trans_dir_t dir )
   wrap();
 }
 
-void Atoms::get_closest_atom( const std::array<double,3> &vec, unsigned int &indx, double &dist )
+void Atoms::get_closest_atom( const Vector &vec, unsigned int &indx, double &dist )
 {
   indx = 0;
   dist = 1E20;
-  for ( unsigned int i=0;i<positions.size();i++ )
+  for ( unsigned int i=0;i<positions.get_nrows();i++ )
   {
     double length = 0.0;
     for ( unsigned int j=0;j<3;j++ )
     {
-      length += pow(positions[i][j]-vec[j],2);
+      length += pow(positions(i,j)-vec(j),2);
     }
     if ( sqrt(length) < dist )
     {

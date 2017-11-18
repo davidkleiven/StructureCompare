@@ -3,6 +3,7 @@
 #include "atoms.hpp"
 #include "rotationMatrixFinder.hpp"
 #include "element_matcher.hpp"
+#include "linalg.hpp"
 
 static PyObject* test_atoms( PyObject *self, PyObject *args )
 {

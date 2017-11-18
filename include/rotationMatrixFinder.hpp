@@ -4,8 +4,9 @@
 #include <vector>
 #include <memory>
 #include <Python.h>
+#include "linalg.hpp"
 
-typedef std::vector< std::array< std::array<double,3>,3> > matlist;
+typedef std::vector< Matrix > matlist;
 class RotationMatrixFinder
 {
 public:
@@ -15,13 +16,13 @@ public:
   const matlist& get_rotation_reflection_matrices();
 
   /** Array containing the positions of the least frequent element */
-  std::vector< std::array<double,3> > least_freq_elm_pos;
+  Matrix least_freq_elm_pos;
 private:
-  std::array< std::array<double,3>, 3> cell;
-  std::array<double,3> ref_angles;
-  std::array<double,3> ref_lengths;
-  std::vector< std::array<double,3> > sc_positions;
-  std::array< std::vector<std::array<double,3> >, 3> candidate_vecs;
+  Matrix cell;
+  Vector ref_angles;
+  Vector ref_lengths;
+  Matrix sc_positions;
+  std::array< std::vector<Vector>, 3> candidate_vecs;
   std::unique_ptr< matlist > rot_ref_mat{nullptr};
 
   double angle_tol{0.1};

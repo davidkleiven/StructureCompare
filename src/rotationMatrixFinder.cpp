@@ -6,52 +6,51 @@ using namespace std;
 
 double PI = acos(-1.0);
 
-RotationMatrixFinder::RotationMatrixFinder( PyObject *pyref_cell, PyObject *pysc_positions, PyObject *pylst_elm_pos )
+RotationMatrixFinder::RotationMatrixFinder( PyObject *pyref_cell, PyObject *pysc_positions, PyObject *pylst_elm_pos ):
+cell(3,3), ref_angles(3), ref_lengths(3)
 {
 
   for ( unsigned int i=0;i<3;i++ )
   {
     for ( unsigned int j=0;j<3;j++ )
     {
-      cell[i][j] = *static_cast<double*>(PyArray_GETPTR2(pyref_cell,i,j));
+      cell(i,j) = *static_cast<double*>(PyArray_GETPTR2(pyref_cell,i,j));
     }
   }
 
   compute_ref_lengths_and_angles();
 
   npy_intp* dims = PyArray_DIMS(pysc_positions);
+  sc_positions.set_size(dims[0],3);
   for ( unsigned int i=0;i<dims[0];i++ )
   {
-    array<double,3> newarray;
     for ( unsigned int j=0;j<3;j++ )
     {
-      newarray[j] = *static_cast<double*>( PyArray_GETPTR2(pysc_positions,i,j) );
+      sc_positions(i,j) = *static_cast<double*>( PyArray_GETPTR2(pysc_positions,i,j) );
     }
-    sc_positions.push_back( newarray );
   }
 
   dims = PyArray_DIMS(pylst_elm_pos );
+  least_freq_elm_pos.set_size(dims[0],3);
   for ( unsigned int i=0;i<dims[0];i++ )
   {
-    array<double,3> lst_pos;
     for ( unsigned int j=0;j<3;j++ )
     {
-      lst_pos[j] = *static_cast<double*>( PyArray_GETPTR2(pylst_elm_pos,i,j) );
+      least_freq_elm_pos(i,j) = *static_cast<double*>( PyArray_GETPTR2(pylst_elm_pos,i,j) );
     }
-    least_freq_elm_pos.push_back( lst_pos );
   }
 }
 
 void RotationMatrixFinder::find_candiate_vectors_length()
 {
-  for ( unsigned int i=1;i<sc_positions.size();i++ )
+  for ( unsigned int i=1;i<sc_positions.get_nrows();i++ )
   {
-    double length = sqrt( pow(sc_positions[i][0],2) + pow(sc_positions[i][1],2) + pow(sc_positions[i][2],2) );
+    double length = sqrt( pow(sc_positions(i,0),2) + pow(sc_positions(i,1),2) + pow(sc_positions(i,2),2) );
     for ( unsigned int k=0;k<3;k++ )
     {
-      if ( abs(length-ref_lengths[k]) < tol )
+      if ( abs(length-ref_lengths(k)) < tol )
       {
-        candidate_vecs[k].push_back(sc_positions[i]);
+        candidate_vecs[k].push_back(sc_positions.row(i));
       }
     }
   }
@@ -61,24 +60,20 @@ void RotationMatrixFinder::compute_ref_lengths_and_angles()
 {
   for ( unsigned int i=0;i<3;i++ )
   {
-    double length = sqrt( pow(cell[0][i],2) + pow(cell[1][i],2) + pow(cell[2][i],2) );
-    ref_lengths[i] = length;
-    ref_angles[i] = 0.0;
+    double length = sqrt( pow(cell(i,0),2) + pow(cell(i,1),2) + pow(cell(i,2),2) );
+    ref_lengths(i) = length;
+    ref_angles(i) = 0.0;
   }
 
-  double dot01 = cell[0][0]*cell[0][1] + cell[1][0]*cell[1][1] + cell[2][0]*cell[2][1];
-  double dot02 = cell[0][0]*cell[0][2] + cell[1][0]*cell[1][2] + cell[2][0]*cell[2][2];
-  double dot12 = cell[0][1]*cell[0][2] + cell[1][1]*cell[1][2] + cell[2][1]*cell[2][2];
-
-  ref_angles[0] = acos( dot01/(ref_lengths[0]*ref_lengths[1]) );
-  ref_angles[1] = acos( dot02/(ref_lengths[0]*ref_lengths[1]) );
-  ref_angles[2] = acos( dot12/(ref_lengths[1]*ref_lengths[2]) );
+  ref_angles[0] = tools::angle( cell.row(0), cell.row(1) );
+  ref_angles[1] = tools::angle( cell.row(0), cell.row(2) );
+  ref_angles[2] = tools::angle( cell.row(1), cell.row(2) );
 
   for ( unsigned int i=0;i<3;i++ )
   {
-    if ( ref_angles[i] > PI/2.0 )
+    if ( ref_angles(i) > PI/2.0 )
     {
-      ref_angles[i] = PI-ref_angles[i];
+      ref_angles(i) = PI-ref_angles[i];
     }
   }
 }
@@ -92,12 +87,12 @@ const matlist& RotationMatrixFinder::get_rotation_reflection_matrices()
 
   find_candiate_vectors_length();
 
-  std::array< std::vector< std::array<double,3> >, 3 > refined_list;
+  std::array< std::vector<Vector>, 3 > refined_list;
   for ( unsigned int i=0;i<candidate_vecs[0].size();i++ )
   {
     for ( unsigned int j=0;j<candidate_vecs[1].size();j++ )
     {
-      double angle01 = tools::angle<3>(candidate_vecs[0][i],candidate_vecs[1][j] );
+      double angle01 = tools::angle(candidate_vecs[0][i],candidate_vecs[1][j] );
       if ( angle01 > PI/2.0 )
       {
         angle01 = PI-angle01;
@@ -109,12 +104,12 @@ const matlist& RotationMatrixFinder::get_rotation_reflection_matrices()
 
       for ( unsigned int k=0;k<candidate_vecs[2].size();k++ )
       {
-        double angle02 = tools::angle<3>( candidate_vecs[0][i], candidate_vecs[2][k] );
-        double angle12 = tools::angle<3>( candidate_vecs[1][j], candidate_vecs[2][k] );
+        double angle02 = tools::angle( candidate_vecs[0][i], candidate_vecs[2][k] );
+        double angle12 = tools::angle( candidate_vecs[1][j], candidate_vecs[2][k] );
         if ( angle02 > PI/2.0 ) angle02 = PI-angle02;
         if ( angle12 > PI/2.0 ) angle12 = PI-angle12;
 
-        if ( ( abs(angle02-ref_angles[1]) < angle_tol ) && (abs(angle12-ref_angles[2]) < angle_tol ) )
+        if ( ( abs(angle02-ref_angles(1)) < angle_tol ) && (abs(angle12-ref_angles(2)) < angle_tol ) )
         {
           refined_list[0].push_back( candidate_vecs[0][i] );
           refined_list[1].push_back( candidate_vecs[1][j] );
@@ -125,17 +120,17 @@ const matlist& RotationMatrixFinder::get_rotation_reflection_matrices()
   }
 
   // Generate rotation matrices
-  std::array< std::array<double,3>, 3> rotmat;
-  std::array< std::array<double,3>, 3> invmat;
+  Matrix rotmat(3,3);
+  Matrix invmat(3,3);
+  Matrix cand(3,3);
   for ( unsigned int i=0;i<refined_list[0].size();i++ )
   {
-    std::array< std::array<double,3>, 3 > cand;
-    cand[0] = refined_list[0][i];
-    cand[1] = refined_list[1][i];
-    cand[2] = refined_list[2][i];
+    cand.set_col( refined_list[0][i],0 );
+    cand.set_col( refined_list[1][i], 1 );
+    cand.set_col( refined_list[2][i], 2 );
 
     tools::inv3x3( cand, invmat );
-    tools::dot<3>( cell, invmat, rotmat );
+    tools::dot( cell.T(), invmat, rotmat );
     rot_ref_mat->push_back( rotmat );
   }
   return *rot_ref_mat;

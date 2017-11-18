@@ -4,6 +4,7 @@
 #include <vector>
 #include <array>
 #include <Python.h>
+#include "linalg.hpp"
 
 typedef std::vector< std::string > strvec;
 typedef std::array< std::array<double,3>, 3> mat3x3;
@@ -21,28 +22,28 @@ public:
   void wrap();
 
   /** Rotate elements */
-  void rotate( const mat3x3 &rotmat, bool wrap_to_unit_cell );
+  void rotate( const Matrix &rotmat, bool wrap_to_unit_cell );
 
   /** Rotate elements without wrapping */
-  void rotate( const mat3x3 &rotmat );
+  void rotate( const Matrix &rotmat );
 
   /** Translate all atoms */
-  void translate( const std::array<double,3> &vec, trans_dir_t dir );
+  void translate( const Vector &vec, trans_dir_t dir );
 
-  void set_positions( std::vector<std::array<double,3> > &new_pos ){ positions=new_pos; };
+  void set_positions( Matrix &new_pos ){ positions=new_pos; };
 
-  std::vector< std::array<double,3> > get_positions() const { return positions; };
+  Matrix get_positions() const { return positions; };
 
-  void get_closest_atom( const std::array<double,3> &vec, unsigned int &indx, double &dist );
+  void get_closest_atom( const Vector &vec, unsigned int &indx, double &dist );
 
-  unsigned int get_n_atoms() const { return positions.size(); }
+  unsigned int get_n_atoms() const { return positions.get_nrows(); }
 
   std::string get_symbol( unsigned int indx ){ return symbols[indx]; };
 private:
   strvec symbols;
-  std::vector< std::array<double,3> > positions;
-  std::array< std::array<double,3>, 3 > cell;
-  std::array< std::array<double,3>, 3 > inv_cell;
+  Matrix positions;
+  Matrix cell;
+  Matrix inv_cell;
 
   /** Inverts the cell matrix */
   void invert_cell();
