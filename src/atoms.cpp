@@ -5,40 +5,7 @@
 #include "tools.hpp"
 
 using namespace std;
-/*
-Atoms::Atoms( const strvec &symb, const dmat &pos, const dmat &cl ): symbols(&symb), cell(&cl)
-{
-  // Perform some checks on the input variables
-  if ( symbols->size() != positions->size() )
-  {
-    throw length_error( "The length of the symbols array and the length of the positions array as to match!" );
-  }
 
-  for ( unsigned int i=0;i<pos.size();i++ )
-  {
-    vector<double> newvec;
-    for unsigned int j=0;j<pos[0].size();j++ )
-    {
-      newvec.push_back( pos[i][j] );
-    }
-    positions.push_back(newvec);
-  }
-
-  if ( cell->size() != 3 )
-  {
-    throw length_error( "Cell has to be a 3x3 matrix!" );
-  }
-
-  for ( auto iter=cell->begin(); iter != cell->end(); ++iter )
-  {
-    if ( iter->size() != 3 )
-    {
-      throw length_error( "Cell has to be a 3x3 matrix!" );
-    }
-  }
-
-  invert_cell();
-};*/
 
 Atoms::Atoms( PyObject *pysymbols, PyObject *pypositions, PyObject *pycell )
 {
