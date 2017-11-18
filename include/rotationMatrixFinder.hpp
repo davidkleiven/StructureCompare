@@ -4,16 +4,18 @@
 #include <vector>
 #include <memory>
 #include <Python.h>
-#include "tools.hpp"
 
 typedef std::vector< std::array< std::array<double,3>,3> > matlist;
 class RotationMatrixFinder
 {
 public:
-  RotationMatrixFinder( PyObject *py_ref_cell, PyObject *pysc_positions );
+  RotationMatrixFinder( PyObject *py_ref_cell, PyObject *pysc_positions, PyObject *pyleast_freq_elm_pos );
 
   /** Get all rotation reflection matrices */
   const matlist& get_rotation_reflection_matrices();
+
+  /** Array containing the positions of the least frequent element */
+  std::vector< std::array<double,3> > least_freq_elm_pos;
 private:
   std::array< std::array<double,3>, 3> cell;
   std::array<double,3> ref_angles;

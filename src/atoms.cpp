@@ -2,6 +2,7 @@
 #include <stdexcept>
 #include <numpy/ndarrayobject.h>
 #include <iostream>
+#include "tools.hpp"
 
 using namespace std;
 /*
@@ -71,22 +72,17 @@ void Atoms::invert_cell()
   double V = cell_volume();
 
   // Hard code the inverse of a 3x3 matrix using minors the inverse of a 3x3 matrix
-  inv_cell[0][0] = det2x2( cell[1][1], cell[1][2], cell[2][1], cell[2][2] )/V;
-  inv_cell[0][1] = det2x2( cell[0][2], cell[0][1], cell[2][2], cell[2][1] )/V;
-  inv_cell[0][2] = det2x2( cell[0][1], cell[0][2], cell[1][1], cell[1][2] )/V;
+  inv_cell[0][0] = tools::det2x2( cell[1][1], cell[1][2], cell[2][1], cell[2][2] )/V;
+  inv_cell[0][1] = tools::det2x2( cell[0][2], cell[0][1], cell[2][2], cell[2][1] )/V;
+  inv_cell[0][2] = tools::det2x2( cell[0][1], cell[0][2], cell[1][1], cell[1][2] )/V;
 
-  inv_cell[1][0] = det2x2( cell[1][2], cell[1][0], cell[2][2], cell[2][0] )/V;
-  inv_cell[1][1] = det2x2( cell[0][0], cell[0][2], cell[2][0], cell[2][2] )/V;
-  inv_cell[1][2] = det2x2( cell[0][2], cell[0][0], cell[1][2], cell[1][0] )/V;
+  inv_cell[1][0] = tools::det2x2( cell[1][2], cell[1][0], cell[2][2], cell[2][0] )/V;
+  inv_cell[1][1] = tools::det2x2( cell[0][0], cell[0][2], cell[2][0], cell[2][2] )/V;
+  inv_cell[1][2] = tools::det2x2( cell[0][2], cell[0][0], cell[1][2], cell[1][0] )/V;
 
-  inv_cell[2][0] = det2x2( cell[1][0], cell[1][1], cell[2][0], cell[2][1] )/V;
-  inv_cell[2][1] = det2x2( cell[0][1], cell[0][0], cell[2][1], cell[2][0] )/V;
-  inv_cell[2][2] = det2x2( cell[0][0], cell[0][1], cell[1][0], cell[1][1] )/V;
-}
-
-double Atoms::det2x2( double a11, double a12, double a21, double a22 ) const
-{
-  return a11*a22 - a12*a21;
+  inv_cell[2][0] = tools::det2x2( cell[1][0], cell[1][1], cell[2][0], cell[2][1] )/V;
+  inv_cell[2][1] = tools::det2x2( cell[0][1], cell[0][0], cell[2][1], cell[2][0] )/V;
+  inv_cell[2][2] = tools::det2x2( cell[0][0], cell[0][1], cell[1][0], cell[1][1] )/V;
 }
 
 double Atoms::cell_volume() const
@@ -96,6 +92,26 @@ double Atoms::cell_volume() const
   V -= cell[0][1]*( cell[1][0]*cell[2][2] - cell[2][0]*cell[1][2] );
   V += cell[0][2]*( cell[1][0]*cell[2][1] - cell[2][0]*cell[1][1] );
   return V;
+}
+
+void Atoms::rotate( const mat3x3 &R, bool wrap_to_unit_cell )
+{
+  array<double,3> out;
+  for ( unsigned int i=0;i<positions.size();i++ )
+  {
+    tools::dot<3>( R, positions[i], out );
+    positions[i] = out;
+  }
+
+  if ( wrap_to_unit_cell )
+  {
+    wrap();
+  }
+}
+
+void Atoms::rotate( const mat3x3 &R )
+{
+  rotate(R,false);
 }
 
 void Atoms::test()
@@ -159,6 +175,51 @@ void Atoms::wrap()
       {
         positions[i][j] += fractional[k]*cell[k][j];
       }
+    }
+  }
+}
+
+void Atoms::translate( const std::array<double,3> &vec, trans_dir_t dir )
+{
+  switch ( dir )
+  {
+    case trans_dir_t::POSITIVE:
+    for ( unsigned int i=0; i<positions.size();i++ )
+    {
+      for ( unsigned int j=0;j<3;j++ )
+      {
+        positions[i][j] += vec[j];
+      }
+    }
+    break;
+    case trans_dir_t::NEGATIVE:
+    for ( unsigned int i=0; i<positions.size();i++ )
+    {
+      for ( unsigned int j=0;j<3;j++ )
+      {
+        positions[i][j] -= vec[j];
+      }
+    }
+  }
+
+  wrap();
+}
+
+void Atoms::get_closest_atom( const std::array<double,3> &vec, unsigned int &indx, double &dist )
+{
+  indx = 0;
+  dist = 1E20;
+  for ( unsigned int i=0;i<positions.size();i++ )
+  {
+    double length = 0.0;
+    for ( unsigned int j=0;j<3;j++ )
+    {
+      length += pow(positions[i][j]-vec[j],2);
+    }
+    if ( sqrt(length) < dist )
+    {
+      dist = sqrt(length);
+      indx = i;
     }
   }
 }

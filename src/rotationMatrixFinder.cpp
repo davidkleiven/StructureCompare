@@ -6,7 +6,7 @@ using namespace std;
 
 double PI = acos(-1.0);
 
-RotationMatrixFinder::RotationMatrixFinder( PyObject *pyref_cell, PyObject *pysc_positions )
+RotationMatrixFinder::RotationMatrixFinder( PyObject *pyref_cell, PyObject *pysc_positions, PyObject *pylst_elm_pos )
 {
 
   for ( unsigned int i=0;i<3;i++ )
@@ -28,6 +28,17 @@ RotationMatrixFinder::RotationMatrixFinder( PyObject *pyref_cell, PyObject *pysc
       newarray[j] = *static_cast<double*>( PyArray_GETPTR2(pysc_positions,i,j) );
     }
     sc_positions.push_back( newarray );
+  }
+
+  dims = PyArray_DIMS(pylst_elm_pos );
+  for ( unsigned int i=0;i<dims[0];i++ )
+  {
+    array<double,3> lst_pos;
+    for ( unsigned int j=0;j<3;j++ )
+    {
+      lst_pos[j] = *static_cast<double*>( PyArray_GETPTR2(pylst_elm_pos,i,j) );
+    }
+    least_freq_elm_pos.push_back( lst_pos );
   }
 }
 
