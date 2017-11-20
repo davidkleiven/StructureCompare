@@ -1,5 +1,6 @@
 import sys
 sys.path.append("/home/dkleiven/Documents/StructureCompare")
+sys.path.append("/home/davidkl/Documents/StructureCompare")
 from ase.build import bulk
 import pystructcomp_cpp as pycmp
 import numpy as np
