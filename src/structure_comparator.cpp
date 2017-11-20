@@ -36,9 +36,8 @@ static PyObject *compare( PyObject *self, PyObject *args )
   PyObject *symb1 = NULL;
   PyObject *symb_exp_2 = NULL;
   PyObject *pycompare = NULL;
-  PyObject *kdtree = NULL;
 
-  if ( !PyArg_ParseTuple( args, "OOOOOOOO", &pycompare, &atom1, &expanded2, &atom1_lst_freq, &atoms1_super_cell, &symb1, &symb_exp_2, &kdtree) )
+  if ( !PyArg_ParseTuple( args, "OOOOOOO", &pycompare, &atom1, &expanded2, &atom1_lst_freq, &atoms1_super_cell, &symb1, &symb_exp_2) )
   {
     PyErr_SetString( PyExc_TypeError, "Could not parse arguments!" );
     return NULL;
@@ -81,7 +80,7 @@ static PyObject *compare( PyObject *self, PyObject *args )
   rotmatfind.rel_length_tol = ltol/n_atoms;
 
   // Initialize element comparator
-  ElementMatcher matcher( rotmatfind, c_atom1, exp_atom2, kdtree );
+  ElementMatcher matcher( rotmatfind, c_atom1, exp_atom2 );
   matcher.set_site_tolerance(stol);
 
   if ( matcher.compare() )

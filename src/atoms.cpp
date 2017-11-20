@@ -100,18 +100,6 @@ void Atoms::wrap()
       fractional[j] -= shift;
       fractional[j] = fmod(fractional[j],1.0);
       if ( fractional[j] < 0.0 ) fractional[j] += 1.0;
-      /*
-      reminder = static_cast<int>(fractional[j]);
-
-      if ( reminder < 0 )
-      {
-        fractional[j] -= (reminder+1);
-      }
-      else
-      {
-        fractional[j] -= reminder;
-      }
-      //fractional[j] -= static_cast<int>(fractional[j]);*/
       fractional[j] += shift;
     }
 

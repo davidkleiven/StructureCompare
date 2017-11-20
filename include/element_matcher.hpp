@@ -7,7 +7,7 @@
 class ElementMatcher
 {
 public:
-  ElementMatcher( RotationMatrixFinder &rotMatFind, Atoms &atom1, Atoms &atom2, PyObject* kdtree );
+  ElementMatcher( RotationMatrixFinder &rotMatFind, Atoms &atom1, Atoms &atom2 );
 
   /** Checks if all elements in atom1 can be mapped onto an element in atom 2*/
   bool compare();
@@ -19,7 +19,6 @@ private:
   Atoms* at1{nullptr};
   Atoms* at2{nullptr};
   double site_tol{0.1};
-  PyObject* kdtree{nullptr};
 
   bool compare_elements();
 };

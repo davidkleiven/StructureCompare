@@ -4,11 +4,8 @@
 
 using namespace std;
 
-ElementMatcher::ElementMatcher( RotationMatrixFinder &rotmatfind, Atoms &at1, Atoms &at2, PyObject *kdtree ):rmat(&rotmatfind), \
-at1(&at1),at2(&at2), kdtree(kdtree)
-{
-  import_array(); // Necessary in order to create Numpy-arrays
-};
+ElementMatcher::ElementMatcher( RotationMatrixFinder &rotmatfind, Atoms &at1, Atoms &at2 ):rmat(&rotmatfind), \
+at1(&at1),at2(&at2){};
 
 bool ElementMatcher::compare()
 {
