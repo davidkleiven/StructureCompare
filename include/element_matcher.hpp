@@ -3,6 +3,7 @@
 #include "rotationMatrixFinder.hpp"
 #include "atoms.hpp"
 #include <Python.h>
+#include "kdtree.hpp"
 
 class ElementMatcher
 {
@@ -19,8 +20,12 @@ private:
   Atoms* at1{nullptr};
   Atoms* at2{nullptr};
   double site_tol{0.1};
+  KDTree tree;
 
   bool compare_elements();
+
+  /** Build a KD of the positions in atom2 for fast nearest neighbour search */
+  void build_kdtree();
 };
 
 #endif

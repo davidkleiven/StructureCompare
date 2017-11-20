@@ -5,7 +5,10 @@
 using namespace std;
 
 ElementMatcher::ElementMatcher( RotationMatrixFinder &rotmatfind, Atoms &at1, Atoms &at2 ):rmat(&rotmatfind), \
-at1(&at1),at2(&at2){};
+at1(&at1),at2(&at2)
+{
+  build_kdtree();
+};
 
 bool ElementMatcher::compare()
 {
@@ -42,6 +45,8 @@ bool ElementMatcher::compare_elements()
       curr_pos(1) = pos(i,(order+1)%3);
       curr_pos(2) = pos(i,(order+2)%3);
       at2->get_closest_atom( curr_pos, indx, dist );
+      // TODO: Get the KD-tree to work and use that for faster nn lookup
+      //tree.get_nearest_neighbour( curr_pos(0), curr_pos(1), curr_pos(2), indx, dist );
       if ( ( at2->get_symbol(indx) != at1->get_symbol(i) ) || (dist > site_tol ) )
       {
         return false;
@@ -57,4 +62,16 @@ void ElementMatcher::set_site_tolerance( double stol )
   double V = at1->cell_volume();
   int n_atoms = at1->get_n_atoms();
   site_tol = stol*pow(V/n_atoms,1.0/3.0);
+}
+
+void ElementMatcher::build_kdtree()
+{
+  Matrix pos = at2->get_positions();
+  tree.build(pos);
+
+  /*
+  for ( unsigned int i=0;i<pos.get_nrows();i++ )
+  {
+    tree.insert( pos(i,0), pos(i,1), pos(i,2), i );
+  }*/
 }
