@@ -2,6 +2,7 @@
 #include <numpy/ndarrayobject.h>
 #include "tools.hpp"
 #include <cmath>
+#include <iostream>
 using namespace std;
 
 double PI = acos(-1.0);
@@ -48,7 +49,7 @@ void RotationMatrixFinder::find_candiate_vectors_length()
     double length = sqrt( pow(sc_positions(i,0),2) + pow(sc_positions(i,1),2) + pow(sc_positions(i,2),2) );
     for ( unsigned int k=0;k<3;k++ )
     {
-      if ( abs(length-ref_lengths(k)) < tol )
+      if ( abs(length-ref_lengths(k)) < rel_length_tol*ref_lengths(k) )
       {
         candidate_vecs[k].push_back(sc_positions.row(i));
       }
@@ -80,7 +81,7 @@ void RotationMatrixFinder::compute_ref_lengths_and_angles()
 
 const matlist& RotationMatrixFinder::get_rotation_reflection_matrices()
 {
-  if ( rot_ref_mat != NULL )
+  if ( rot_ref_mat != nullptr )
   {
     return *rot_ref_mat;
   }
@@ -123,15 +124,31 @@ const matlist& RotationMatrixFinder::get_rotation_reflection_matrices()
   Matrix rotmat(3,3);
   Matrix invmat(3,3);
   Matrix cand(3,3);
+  rot_ref_mat = unique_ptr<matlist>( new matlist );
   for ( unsigned int i=0;i<refined_list[0].size();i++ )
   {
-    cand.set_col( refined_list[0][i],0 );
+    cand.set_col( refined_list[0][i], 0 );
     cand.set_col( refined_list[1][i], 1 );
     cand.set_col( refined_list[2][i], 2 );
 
     tools::inv3x3( cand, invmat );
     tools::dot( cell.T(), invmat, rotmat );
-    rot_ref_mat->push_back( rotmat );
+    if ( valid_matrix(rotmat) )
+    {
+      rot_ref_mat->push_back( rotmat );
+    }
   }
   return *rot_ref_mat;
+}
+
+bool RotationMatrixFinder::valid_matrix( const Matrix& mat ) const
+{
+  for ( unsigned int i=0;i<3;i++ )
+  {
+    for ( unsigned int j=0;j<3;j++ )
+    {
+      if ( isnan( mat(i,j) ) ) return false;
+    }
+  }
+  return true;
 }

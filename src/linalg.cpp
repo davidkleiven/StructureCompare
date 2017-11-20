@@ -1,4 +1,6 @@
 #include "linalg.hpp"
+#include <cassert>
+#include <cstring>
 
 using namespace std;
 
@@ -24,19 +26,13 @@ void Matrix::set_size( unsigned int new_nrows, unsigned int new_ncols )
 Matrix::Matrix( const Matrix& other )
 {
   this->set_size( other.nrows, other.ncols );
-  for ( unsigned int i=0;i<nrows*ncols;i++ )
-  {
-    data[i] = other.data[i];
-  }
+  memcpy( this->data, other.data, sizeof(double)*nrows*ncols );
 }
 
 Matrix& Matrix::operator=( const Matrix &other )
 {
-  set_size( other.nrows, other.ncols );
-  for ( unsigned int i=0;i<nrows*ncols;i++ )
-  {
-    data[i] = other.data[i];
-  }
+  this->set_size( other.nrows, other.ncols );
+  memcpy( this->data, other.data, sizeof(double)*nrows*ncols );
   return *this;
 }
 
@@ -65,7 +61,7 @@ double& Matrix::operator()( unsigned int n, unsigned int m )
 
 Vector Matrix::row( unsigned int row ) const
 {
-  Vector newrow(nrows);
+  Vector newrow(ncols);
   for ( unsigned int i=0;i<ncols;i++ )
   {
     newrow(i) = (*this)(row,i);
@@ -114,6 +110,7 @@ ostream& operator << (ostream& out, const Matrix &mat )
 
 void Matrix::set_col( const Vector &vec, unsigned int col )
 {
+  assert( vec.size() == nrows );
   for ( unsigned int i=0;i<nrows;i++ )
   {
     (*this)(i,col) = vec(i);

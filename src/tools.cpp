@@ -1,4 +1,5 @@
 #include "tools.hpp"
+#include <cassert>
 
 double tools::dot( const Vector &v1, const Vector &v2 )
 {
@@ -12,6 +13,10 @@ double tools::dot( const Vector &v1, const Vector &v2 )
 
 void tools::dot( const Matrix &m1,  const Matrix &m2, Matrix &out )
 {
+  assert( m1.get_ncols() == m2.get_nrows() );
+  assert( out.get_nrows() == m1.get_nrows() );
+  assert( out.get_ncols() == m2.get_ncols() );
+  
   for ( unsigned int i=0;i<out.get_nrows();i++ )
   {
     for ( unsigned int j=0;j<out.get_ncols();j++ )

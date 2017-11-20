@@ -2,6 +2,7 @@
 #include <stdexcept>
 #include <numpy/ndarrayobject.h>
 #include <iostream>
+#include <cmath>
 #include "tools.hpp"
 
 using namespace std;
@@ -22,7 +23,6 @@ Atoms::Atoms( PyObject *pysymbols, PyObject *pypositions, PyObject *pycell ):cel
       positions(i,j) = *static_cast<double*>(PyArray_GETPTR2(pypositions,i,j));
     }
   }
-  cout << positions << endl;
 
   // Extract the unit cell
   for ( unsigned int i=0;i<3;i++ )
@@ -38,7 +38,7 @@ Atoms::Atoms( PyObject *pysymbols, PyObject *pypositions, PyObject *pycell ):cel
 
 void Atoms::invert_cell()
 {
-  tools::inv3x3( cell, inv_cell );
+  tools::inv3x3( cell.T(), inv_cell );
 }
 
 double Atoms::cell_volume() const
@@ -84,7 +84,10 @@ void Atoms::test()
 void Atoms::wrap()
 {
   double eps = 1E-7;
+  double center = 0.5;
+  double shift = center-0.5-eps;
   Vector fractional(3);
+  int reminder;
   for ( unsigned int i=0;i<positions.get_nrows();i++ )
   {
     for ( unsigned int j=0;j<3;j++ )
@@ -94,9 +97,22 @@ void Atoms::wrap()
       {
         fractional[j] += inv_cell(j,k)*positions(i,k);
       }
-      fractional[j] += eps;
-      fractional[j] -= static_cast<int>(fractional[j]);
-      fractional[j] -= eps;
+      fractional[j] -= shift;
+      fractional[j] = fmod(fractional[j],1.0);
+      if ( fractional[j] < 0.0 ) fractional[j] += 1.0;
+      /*
+      reminder = static_cast<int>(fractional[j]);
+
+      if ( reminder < 0 )
+      {
+        fractional[j] -= (reminder+1);
+      }
+      else
+      {
+        fractional[j] -= reminder;
+      }
+      //fractional[j] -= static_cast<int>(fractional[j]);*/
+      fractional[j] += shift;
     }
 
     for ( unsigned int j=0;j<3;j++ )
@@ -115,22 +131,23 @@ void Atoms::translate( const Vector &vec, trans_dir_t dir )
   switch ( dir )
   {
     case trans_dir_t::POSITIVE:
-    for ( unsigned int i=0; i<positions.get_nrows();i++ )
-    {
-      for ( unsigned int j=0;j<3;j++ )
+      for ( unsigned int i=0; i<positions.get_nrows();i++ )
       {
-        positions(i,j) += vec(j);
+        for ( unsigned int j=0;j<3;j++ )
+        {
+          positions(i,j) += vec(j);
+        }
       }
-    }
-    break;
+      break;
     case trans_dir_t::NEGATIVE:
-    for ( unsigned int i=0; i<positions.get_nrows();i++ )
-    {
-      for ( unsigned int j=0;j<3;j++ )
+      for ( unsigned int i=0; i<positions.get_nrows();i++ )
       {
-        positions(i,j) -= vec(j);
+        for ( unsigned int j=0;j<3;j++ )
+        {
+          positions(i,j) -= vec(j);
+        }
       }
-    }
+      break;
   }
 
   wrap();

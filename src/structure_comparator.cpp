@@ -4,6 +4,9 @@
 #include "rotationMatrixFinder.hpp"
 #include "element_matcher.hpp"
 #include "linalg.hpp"
+#include <iostream>
+
+using namespace std;
 
 static PyObject* test_atoms( PyObject *self, PyObject *args )
 {
@@ -33,8 +36,9 @@ static PyObject *compare( PyObject *self, PyObject *args )
   PyObject *symb1 = NULL;
   PyObject *symb_exp_2 = NULL;
   PyObject *pycompare = NULL;
+  PyObject *kdtree = NULL;
 
-  if ( !PyArg_ParseTuple( args, "OOOOOOO", &pycompare, &atom1, &expanded2, &atom1_lst_freq, &atoms1_super_cell, &symb1, &symb_exp_2) )
+  if ( !PyArg_ParseTuple( args, "OOOOOOOO", &pycompare, &atom1, &expanded2, &atom1_lst_freq, &atoms1_super_cell, &symb1, &symb_exp_2, &kdtree) )
   {
     PyErr_SetString( PyExc_TypeError, "Could not parse arguments!" );
     return NULL;
@@ -45,6 +49,7 @@ static PyObject *compare( PyObject *self, PyObject *args )
   PyObject *pos1 = PyArray_FROM_OTF( PyObject_CallMethod( atom1, "get_positions",format ), NPY_DOUBLE, NPY_ARRAY_IN_ARRAY );
   PyObject *cell1 = PyArray_FROM_OTF( PyObject_CallMethod( atom1, "get_cell",format), NPY_DOUBLE, NPY_ARRAY_IN_ARRAY );
   Atoms c_atom1( symb1, pos1, cell1 );
+  int n_atoms = PyList_Size(symb1);
 
   // Initialize expanded atom2
   PyObject *pos2 = PyArray_FROM_OTF( PyObject_CallMethod( expanded2, "get_positions",format), NPY_DOUBLE, NPY_ARRAY_IN_ARRAY );
@@ -60,8 +65,24 @@ static PyObject *compare( PyObject *self, PyObject *args )
   // Initialize matrix finder
   RotationMatrixFinder rotmatfind( cell1, pos_sc, pos_ls );
 
+  // Extract tolerances
+  PyObject *py_ang_tol = PyObject_GetAttrString(pycompare, "angle_tol");
+  PyObject *py_ltol = PyObject_GetAttrString(pycompare, "ltol");
+  PyObject *py_stol = PyObject_GetAttrString(pycompare,"stol");
+  if ( !py_ang_tol || !py_ltol || !py_stol )
+  {
+    PyErr_SetString( PyExc_TypeError, "Could not extract the tolerance values!");
+    return NULL;
+  }
+  double angle_tol = PyFloat_AsDouble(py_ang_tol);
+  double ltol = PyFloat_AsDouble(py_ltol);
+  double stol = PyFloat_AsDouble(py_stol);
+  rotmatfind.angle_tol = angle_tol;
+  rotmatfind.rel_length_tol = ltol/n_atoms;
+
   // Initialize element comparator
-  ElementMatcher matcher( rotmatfind, c_atom1, exp_atom2 );
+  ElementMatcher matcher( rotmatfind, c_atom1, exp_atom2, kdtree );
+  matcher.set_site_tolerance(stol);
 
   if ( matcher.compare() )
   {

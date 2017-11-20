@@ -39,16 +39,16 @@ public:
   unsigned int get_n_atoms() const { return positions.get_nrows(); }
 
   std::string get_symbol( unsigned int indx ){ return symbols[indx]; };
+
+  /** Return the cell volume */
+  double cell_volume() const;
 private:
   strvec symbols;
   Matrix positions;
   Matrix cell;
-  Matrix inv_cell;
+  Matrix inv_cell; // Inverse of the transpose of the unit cell
 
   /** Inverts the cell matrix */
   void invert_cell();
-
-  /** Return the cell volume */
-  double cell_volume() const;
 };
 #endif
