@@ -28,6 +28,12 @@ public:
   /** Generates a KD-tree starting at the node closest as possible to the center of mass */
   void build( const Matrix &positions );
 
+  /** Generates a KD tree by inserting the first row first, then the second etc. */
+  void build_in_order( const Matrix &positions );
+
+  /** Build a balanced KD tree based on median */
+  void build_balanced( const Matrix &positions );
+
   /** Prints information of the tree */
   void info() const;
 private:
@@ -42,6 +48,7 @@ private:
   unsigned int deepest_level{0};
   unsigned int number_of_nearest_neighbour_search{0};
   unsigned int number_of_searched_nodes_nn{0};
+  void insert_median( const Matrix &positions );
+  static unsigned int get_median( const Matrix &positions, unsigned int axis );
 };
-
 #endif

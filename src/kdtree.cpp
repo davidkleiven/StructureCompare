@@ -1,6 +1,8 @@
 #include "kdtree.hpp"
 #include <cmath>
 #include <iostream>
+#include <algorithm>
+#include <vector>
 
 using namespace std;
 
@@ -242,7 +244,7 @@ void KDTree::build( const Matrix &positions )
       best_indx = i;
     }
   }
-  //best_indx=0;
+
   unsigned int indx = 0;
   // Build KD tree
   for ( unsigned int i=0;i<N;i++ )
@@ -263,4 +265,64 @@ void KDTree::info() const
     cout << "Average number of expored nodes in nn search: " << static_cast<double>(number_of_searched_nodes_nn)/number_of_nearest_neighbour_search << endl;
   }
 
+}
+
+void KDTree::build_in_order( const Matrix &positions )
+{
+  for ( unsigned int i=0;i<positions.get_nrows();i++ )
+  {
+    double x = positions(i,0);
+    double y = positions(i,1);
+    double z = positions(i,2);
+    insert( x,y,z, i );
+  }
+}
+
+class Comparator
+{
+public:
+  Comparator(const vector<double> &x):x(&x){};
+  const vector<double> *x;
+  bool operator()(int a, int b) const { return (*x)[a] < (*x)[b];};
+};
+
+void KDTree::build_balanced( const Matrix& positions )
+{
+  unsigned int N = positions.get_nrows();
+  vector<double> x(N);
+  vector<double> y(N);
+  vector<double> z(N);
+  vector<int> ix(N);
+  vector<int> iy(N);
+  vector<int> iz(N);
+  for ( unsigned int i=0;i<N;i++ )
+  {
+    x[i] = positions(i,0);
+    y[i] = positions(i,1);
+    z[i] = positions(i,2);
+    ix[i] = iy[i] = iz[i] = i;
+  }
+
+  // Sort the indices
+  Comparator compx(x);
+  Comparator compy(y);
+  Comparator compz(z);
+  sort(ix.begin(),ix.end(),compx);
+  sort(iy.begin(),iy.end(),compy);
+  sort(iz.begin(),iz.end(),compz);
+}
+
+unsigned int KDTree::get_median( const Matrix &positions, unsigned int axis )
+{
+  unsigned int N = positions.get_nrows();
+  vector<double> values(N);
+  for ( unsigned int i=0;i<N;i++ )
+  {
+    values[i] = positions(i,axis);
+  }
+  auto first = values.begin();
+  auto nth = values.begin()+N/2;
+  auto last = values.end();
+  nth_element(first,nth,last);
+  return nth-first;
 }

@@ -4,6 +4,7 @@
 #include "rotationMatrixFinder.hpp"
 #include "element_matcher.hpp"
 #include "linalg.hpp"
+#include "kdtree.hpp"
 #include <iostream>
 
 using namespace std;
@@ -90,9 +91,47 @@ static PyObject *compare( PyObject *self, PyObject *args )
   Py_RETURN_FALSE;
 }
 
+static PyObject* test_KDtree( PyObject *self, PyObject *args )
+{
+  PyObject *positions = nullptr;
+  PyObject* point = nullptr;
+
+  if ( !PyArg_ParseTuple( args, "OO", &positions, &point ) )
+  {
+    PyErr_SetString( PyExc_TypeError, "Could not parse arguments" );
+    return NULL;
+  }
+
+  PyObject* npy_positions = PyArray_FROM_OTF( positions, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY );
+  npy_intp* dims = PyArray_DIMS(npy_positions);
+  Matrix pos(dims[0],dims[1]);
+  for ( unsigned int i=0;i<dims[0];i++ )
+  {
+    for ( unsigned int j=0;j<dims[1];j++ )
+    {
+      pos(i,j) = *static_cast<double*>(PyArray_GETPTR2(npy_positions,i,j));
+    }
+  }
+
+  KDTree tree;
+  tree.build(pos);
+  double dist;
+  unsigned int id;
+  PyObject* point_array = PyArray_FROM_OTF( point, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY );
+  double x = *static_cast<double*>( PyArray_GETPTR1(point_array,0) );
+  double y = *static_cast<double*>( PyArray_GETPTR1(point_array,1) );
+  double z = *static_cast<double*>( PyArray_GETPTR1(point_array,2) );
+  tree.get_nearest_neighbour(x,y,z,id,dist);
+  cout << "Distance: " << dist << endl;
+  cout << "ID: " << id << endl;
+  tree.info();
+  Py_RETURN_TRUE;
+}
+
 static PyMethodDef structure_comparator_methods[] = {
   {"test_atoms", test_atoms, METH_VARARGS, "Test the C++ atoms object"},
   {"compare", compare, METH_VARARGS, "Check if two structures are symmetrically equivalent"},
+  {"test_KDtree",test_KDtree,METH_VARARGS, "Test that the KDTree class returns the same nearest neighbour as scipy's KDtree"},
   {NULL,NULL,0,NULL}
 };
 

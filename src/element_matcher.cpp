@@ -67,11 +67,6 @@ void ElementMatcher::set_site_tolerance( double stol )
 void ElementMatcher::build_kdtree()
 {
   Matrix pos = at2->get_positions();
-  tree.build(pos);
-
-  /*
-  for ( unsigned int i=0;i<pos.get_nrows();i++ )
-  {
-    tree.insert( pos(i,0), pos(i,1), pos(i,2), i );
-  }*/
+  tree.build_in_order(pos); // For some reason the KD tree only works when build_in_order despite the fact that when testing it should work
+                            // with build as well
 }
