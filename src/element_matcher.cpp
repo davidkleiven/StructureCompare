@@ -37,7 +37,9 @@ bool ElementMatcher::compare_elements()
   Vector curr_pos(3);
   double dist;
   unsigned int indx;
-  for ( unsigned int order=0;order<3;order++)
+  // TODO: Maybe one have to cycle through the coordinates because
+  // the final structure ends up in a different octant
+  for ( unsigned int order=0;order<1;order++)
   {
     for ( unsigned int i=0;i<N;i++ )
     {
