@@ -15,7 +15,11 @@ Atoms::Atoms( PyObject *pysymbols, PyObject *pypositions, PyObject *pycell ):cel
 
   for ( unsigned int i=0;i<N;i++ )
   {
-    symbols.push_back( PyString_AsString(PyList_GetItem(pysymbols,i)) );
+    #if PY_MAJOR_VERSION >= 3
+      symbols.push_back( PyUnicode_AsUTF8(PyList_GetItem(pysymbols,i)) );
+    #else
+      symbols.push_back( PyString_AsString(PyList_GetItem(pysymbols,i)) );
+    #endif
 
     // Extract the positions
     for ( unsigned int j=0;j<3;j++ )
@@ -87,7 +91,6 @@ void Atoms::wrap()
   double center = 0.5;
   double shift = center-0.5-eps;
   Vector fractional(3);
-  int reminder;
   for ( unsigned int i=0;i<positions.get_nrows();i++ )
   {
     for ( unsigned int j=0;j<3;j++ )
