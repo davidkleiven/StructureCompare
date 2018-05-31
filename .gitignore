@@ -1,3 +1,5 @@
 # Ignore file
 build/*
 *.so*
+dist/*
+pystructcomp.egg-info/*
