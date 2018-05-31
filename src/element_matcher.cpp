@@ -1,6 +1,8 @@
 #include "element_matcher.hpp"
 #include "linalg.hpp"
 #include <iostream>
+#include <vector>
+#include <algorithm>
 
 using namespace std;
 
@@ -41,12 +43,19 @@ bool ElementMatcher::compare_elements()
   // the final structure ends up in a different octant
   for ( unsigned int order=0;order<1;order++)
   {
+    vector<bool> used_indices(at2->get_n_atoms());
+    fill(used_indices.begin(),used_indices.end(),false);
     for ( unsigned int i=0;i<N;i++ )
     {
       curr_pos(0) = pos(i,order%3);
       curr_pos(1) = pos(i,(order+1)%3);
       curr_pos(2) = pos(i,(order+2)%3);
       at2->get_closest_atom( curr_pos, indx, dist );
+      if ( used_indices[indx] )
+      {
+        return false;
+      }
+      used_indices[indx] = true;
       // TODO: Get the KD-tree to work and use that for faster nn lookup
       //tree.get_nearest_neighbour( curr_pos(0), curr_pos(1), curr_pos(2), indx, dist );
       if ( ( at2->get_symbol(indx) != at1->get_symbol(i) ) || (dist > site_tol ) )
