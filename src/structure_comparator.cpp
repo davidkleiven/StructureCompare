@@ -49,21 +49,27 @@ static PyObject *compare( PyObject *self, PyObject *args )
 
   char* format = NULL;
   // Initialize the atom1
-  PyObject *pos1 = PyArray_FROM_OTF( PyObject_CallMethod( atom1, "get_positions",format ), NPY_DOUBLE, NPY_ARRAY_IN_ARRAY );
-  PyObject *cell1 = PyArray_FROM_OTF( PyObject_CallMethod( atom1, "get_cell",format), NPY_DOUBLE, NPY_ARRAY_IN_ARRAY );
+  PyObject* pos1_raw =  PyObject_CallMethod( atom1, "get_positions",format );
+  PyObject *pos1 = PyArray_FROM_OTF(pos1_raw, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY );
+  PyObject* cell1_raw = PyObject_CallMethod( atom1, "get_cell",format);
+  PyObject *cell1 = PyArray_FROM_OTF( cell1_raw, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY );
   Atoms c_atom1( symb1, pos1, cell1 );
   int n_atoms = PyList_Size(symb1);
 
   // Initialize expanded atom2
-  PyObject *pos2 = PyArray_FROM_OTF( PyObject_CallMethod( expanded2, "get_positions",format), NPY_DOUBLE, NPY_ARRAY_IN_ARRAY );
-  PyObject* cell2 = PyArray_FROM_OTF( PyObject_CallMethod( expanded2, "get_cell",format), NPY_DOUBLE, NPY_ARRAY_IN_ARRAY );
+  PyObject* pos2_raw = PyObject_CallMethod( expanded2, "get_positions",format);
+  PyObject* pos2 = PyArray_FROM_OTF( pos2_raw, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY );
+  PyObject* cell2_raw = PyObject_CallMethod( expanded2, "get_cell",format);
+  PyObject* cell2 = PyArray_FROM_OTF( cell2_raw, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY );
   Atoms exp_atom2( symb_exp_2, pos2, cell2 );
 
   // Initialize supercell structure
-  PyObject *pos_sc = PyArray_FROM_OTF( PyObject_CallMethod( atoms1_super_cell, "get_positions",format), NPY_DOUBLE, NPY_ARRAY_IN_ARRAY );
+  PyObject* pos_sc_raw = PyObject_CallMethod( atoms1_super_cell, "get_positions",format);
+  PyObject *pos_sc = PyArray_FROM_OTF(pos_sc_raw, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY );
 
   // Initialize least frequent elements
-  PyObject* pos_ls = PyArray_FROM_OTF( PyObject_CallMethod(atom1_lst_freq, "get_positions",format), NPY_DOUBLE, NPY_ARRAY_IN_ARRAY );
+  PyObject* pos_ls_raw = PyObject_CallMethod(atom1_lst_freq, "get_positions",format);
+  PyObject* pos_ls = PyArray_FROM_OTF(pos_ls_raw, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY );
 
   // Initialize matrix finder
   RotationMatrixFinder rotmatfind( cell1, pos_sc, pos_ls );
@@ -94,10 +100,16 @@ static PyObject *compare( PyObject *self, PyObject *args )
   Py_DECREF(pos2);
   Py_DECREF(cell2);
   Py_DECREF(pos_sc);
+  Py_DECREF(pos_sc_raw);
   Py_DECREF(pos_ls);
+  Py_DECREF(pos_ls_raw);
   Py_DECREF(py_ang_tol);
   Py_DECREF(py_ltol);
   Py_DECREF(py_stol);
+  Py_DECREF(pos1_raw);
+  Py_DECREF(pos2_raw);
+  Py_DECREF(cell1_raw);
+  Py_DECREF(cell2_raw);
 
   if ( match )
   {
