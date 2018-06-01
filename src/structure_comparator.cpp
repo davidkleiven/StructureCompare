@@ -25,6 +25,9 @@ static PyObject* test_atoms( PyObject *self, PyObject *args )
 
  Atoms atom( symbols, positions, cell );
  atom.test();
+ Py_DECREF(positions);
+ Py_DECREF(cell);
+ Py_DECREF(symbols);
  Py_RETURN_TRUE;
 }
 
@@ -83,8 +86,20 @@ static PyObject *compare( PyObject *self, PyObject *args )
   // Initialize element comparator
   ElementMatcher matcher( rotmatfind, c_atom1, exp_atom2 );
   matcher.set_site_tolerance(stol);
+  bool match = matcher.compare();
 
-  if ( matcher.compare() )
+  // Decrease the reference count on all objects
+  Py_DECREF(pos1);
+  Py_DECREF(cell1);
+  Py_DECREF(pos2);
+  Py_DECREF(cell2);
+  Py_DECREF(pos_sc);
+  Py_DECREF(pos_ls);
+  Py_DECREF(py_ang_tol);
+  Py_DECREF(py_ltol);
+  Py_DECREF(py_stol);
+
+  if ( match )
   {
     Py_RETURN_TRUE;
   }
@@ -125,6 +140,11 @@ static PyObject* test_KDtree( PyObject *self, PyObject *args )
   cout << "Distance: " << dist << endl;
   cout << "ID: " << id << endl;
   tree.info();
+
+  Py_DECREF(positions);
+  Py_DECREF(point);
+  Py_DECREF(npy_positions);
+  Py_DECREF(point_array);
   Py_RETURN_TRUE;
 }
 
